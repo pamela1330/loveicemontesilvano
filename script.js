@@ -31,6 +31,85 @@
       });
     });
 
+
+    function initActiveNavbar(){
+      var navLinks = Array.prototype.slice.call(document.querySelectorAll('.top-actions .nav-pill'));
+      if (!navLinks.length) return;
+
+      function clearActive(){
+        navLinks.forEach(function(a){
+          a.classList.remove('active');
+          a.removeAttribute('aria-current');
+        });
+      }
+
+      function sameIndexPage(href){
+        return href && (href.indexOf('index.html#') !== -1 || href.charAt(0) === '#');
+      }
+
+      function setActiveByHash(hash){
+        clearActive();
+        var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+        if (page === 'gelati_e_torte.html') {
+          var gt = navLinks.find(function(a){ return a.getAttribute('href') === 'gelati_e_torte.html'; });
+          if (gt) { gt.classList.add('active'); gt.setAttribute('aria-current','page'); }
+          return;
+        }
+
+        var targetHash = hash || location.hash || '#home';
+        var active = navLinks.find(function(a){
+          var href = a.getAttribute('href') || '';
+          return href === targetHash || href === 'index.html' + targetHash;
+        });
+        if (!active && targetHash !== '#home') {
+          active = navLinks.find(function(a){ return (a.getAttribute('href') || '').indexOf('#home') !== -1; });
+        }
+        if (active) { active.classList.add('active'); active.setAttribute('aria-current','page'); }
+      }
+
+      navLinks.forEach(function(link){
+        link.addEventListener('click', function(e){
+          var href = link.getAttribute('href') || '';
+          if (sameIndexPage(href)) {
+            var hash = href.charAt(0) === '#' ? href : href.substring(href.indexOf('#'));
+            var target = document.querySelector(hash);
+            if (target) {
+              e.preventDefault();
+              target.scrollIntoView({behavior:'smooth', block:'start'});
+              history.replaceState(null, '', hash);
+              setActiveByHash(hash);
+            }
+          } else if (href === 'gelati_e_torte.html') {
+            clearActive();
+            link.classList.add('active');
+            link.setAttribute('aria-current','page');
+          }
+        });
+      });
+
+      var sectionMap = [
+        ['#home', document.getElementById('home')],
+        ['#menu', document.getElementById('menu')],
+        ['#contatti', document.getElementById('contatti')]
+      ].filter(function(pair){ return pair[1]; });
+
+      if ('IntersectionObserver' in window && sectionMap.length) {
+        var observer = new IntersectionObserver(function(entries){
+          var visible = entries.filter(function(entry){ return entry.isIntersecting; })
+                               .sort(function(a,b){ return b.intersectionRatio - a.intersectionRatio; })[0];
+          if (visible) {
+            var found = sectionMap.find(function(pair){ return pair[1] === visible.target; });
+            if (found) setActiveByHash(found[0]);
+          }
+        }, {rootMargin: '-38% 0px -52% 0px', threshold: [0.08, 0.18, 0.35]});
+        sectionMap.forEach(function(pair){ observer.observe(pair[1]); });
+      }
+
+      window.addEventListener('hashchange', function(){ setActiveByHash(location.hash); });
+      setActiveByHash(location.hash || '#home');
+    }
+    initActiveNavbar();
+
     var searchInput = document.getElementById('menu-search');
     if (searchInput) {
       var items = Array.prototype.slice.call(document.querySelectorAll('#menu .menu-item, #menu .drink-item'));
